@@ -84,10 +84,8 @@ function LoginPageClient() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const envPassword = (process.env.NEXT_PUBLIC_PASSWORD || '').toString();
-      console.log('[Login] 尝试自动填充密码:', envPassword);
       if (envPassword) {
         setPassword(envPassword);
-        console.log('[Login] 密码已自动填充');
       }
     }
   }, []);
@@ -104,11 +102,9 @@ function LoginPageClient() {
   // 自动提交（仅在密码自动填充后触发，且只触发一次）
   useEffect(() => {
     if (formRef.current && password && password === (process.env.NEXT_PUBLIC_PASSWORD || '')) {
-      console.log('[Login] 检测到自动填充密码，1秒后自动提交');
       const timer = setTimeout(() => {
-        console.log('[Login] 自动提交表单');
         formRef.current?.requestSubmit();
-      }, 1000);
+      }, 200);
       return () => clearTimeout(timer);
     }
   }, [password]);
