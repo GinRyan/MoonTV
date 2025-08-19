@@ -4,7 +4,7 @@
 
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { checkForUpdates, CURRENT_VERSION, UpdateStatus } from '@/lib/version';
 
@@ -41,13 +41,12 @@ function VersionDisplay() {
       <span className='font-mono'>v{CURRENT_VERSION}</span>
       {!isChecking && updateStatus !== UpdateStatus.FETCH_FAILED && (
         <div
-          className={`flex items-center gap-1.5 ${
-            updateStatus === UpdateStatus.HAS_UPDATE
-              ? 'text-yellow-600 dark:text-yellow-400'
-              : updateStatus === UpdateStatus.NO_UPDATE
+          className={`flex items-center gap-1.5 ${updateStatus === UpdateStatus.HAS_UPDATE
+            ? 'text-yellow-600 dark:text-yellow-400'
+            : updateStatus === UpdateStatus.NO_UPDATE
               ? 'text-green-600 dark:text-green-400'
               : ''
-          }`}
+            }`}
         >
           {updateStatus === UpdateStatus.HAS_UPDATE && (
             <>
@@ -67,45 +66,65 @@ function VersionDisplay() {
   );
 }
 
+
 function LoginPageClient() {
-  const router = useRouter();
+
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [shouldAskUsername, setShouldAskUsername] = useState(false);
   const [enableRegister, setEnableRegister] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const { siteName } = useSite();
+
+  // 初始化 password（仅在客户端环境下赋值）
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const envPassword = (process.env.NEXT_PUBLIC_PASSWORD || '').toString();
+      console.log('[Login] 尝试自动填充密码:', envPassword);
+      if (envPassword) {
+        setPassword(envPassword);
+        console.log('[Login] 密码已自动填充');
+      }
+    }
+  }, []);
 
   // 在客户端挂载后设置配置
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storageType = (window as any).RUNTIME_CONFIG?.STORAGE_TYPE;
       setShouldAskUsername(storageType && storageType !== 'localstorage');
-      setEnableRegister(
-        Boolean((window as any).RUNTIME_CONFIG?.ENABLE_REGISTER)
-      );
+      setEnableRegister(Boolean((window as any).RUNTIME_CONFIG?.ENABLE_REGISTER));
     }
   }, []);
 
+  // 自动提交（仅在密码自动填充后触发，且只触发一次）
+  useEffect(() => {
+    if (formRef.current && password && password === (process.env.NEXT_PUBLIC_PASSWORD || '')) {
+      console.log('[Login] 检测到自动填充密码，1秒后自动提交');
+      const timer = setTimeout(() => {
+        console.log('[Login] 自动提交表单');
+        formRef.current?.requestSubmit();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [password]);
+
+  // 登录提交
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
-
     if (!password || (shouldAskUsername && !username)) return;
-
+    setLoading(true);
     try {
-      setLoading(true);
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          password,
-          ...(shouldAskUsername ? { username } : {}),
-        }),
+        body: JSON.stringify(shouldAskUsername ? { username, password } : { password }),
       });
-
       if (res.ok) {
         const redirect = searchParams.get('redirect') || '/';
         router.replace(redirect);
@@ -122,19 +141,17 @@ function LoginPageClient() {
     }
   };
 
-  // 处理注册逻辑
+  // 注册逻辑
   const handleRegister = async () => {
     setError(null);
     if (!password || !username) return;
-
+    setLoading(true);
     try {
-      setLoading(true);
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-
       if (res.ok) {
         const redirect = searchParams.get('redirect') || '/';
         router.replace(redirect);
@@ -158,7 +175,7 @@ function LoginPageClient() {
         <h1 className='text-green-600 tracking-tight text-center text-3xl font-extrabold mb-8 bg-clip-text drop-shadow-sm'>
           {siteName}
         </h1>
-        <form onSubmit={handleSubmit} className='space-y-8'>
+        <form ref={formRef} onSubmit={handleSubmit} className='space-y-8'>
           {shouldAskUsername && (
             <div>
               <label htmlFor='username' className='sr-only'>
@@ -175,7 +192,6 @@ function LoginPageClient() {
               />
             </div>
           )}
-
           <div>
             <label htmlFor='password' className='sr-only'>
               密码
@@ -183,19 +199,15 @@ function LoginPageClient() {
             <input
               id='password'
               type='password'
-              autoComplete='current-password'
               className='block w-full rounded-lg border-0 py-3 px-4 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-white/60 dark:ring-white/20 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none sm:text-base bg-white/60 dark:bg-zinc-800/60 backdrop-blur'
               placeholder='输入访问密码'
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-
           {error && (
             <p className='text-sm text-red-600 dark:text-red-400'>{error}</p>
           )}
-
-          {/* 登录 / 注册按钮 */}
           {shouldAskUsername && enableRegister ? (
             <div className='flex gap-4'>
               <button
@@ -208,9 +220,7 @@ function LoginPageClient() {
               </button>
               <button
                 type='submit'
-                disabled={
-                  !password || loading || (shouldAskUsername && !username)
-                }
+                disabled={!password || loading || (shouldAskUsername && !username)}
                 className='flex-1 inline-flex justify-center rounded-lg bg-green-600 py-3 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:from-green-600 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50'
               >
                 {loading ? '登录中...' : '登录'}
@@ -219,9 +229,7 @@ function LoginPageClient() {
           ) : (
             <button
               type='submit'
-              disabled={
-                !password || loading || (shouldAskUsername && !username)
-              }
+              disabled={!password || loading || (shouldAskUsername && !username)}
               className='inline-flex w-full justify-center rounded-lg bg-green-600 py-3 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:from-green-600 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50'
             >
               {loading ? '登录中...' : '登录'}
@@ -229,8 +237,6 @@ function LoginPageClient() {
           )}
         </form>
       </div>
-
-      {/* 版本信息显示 */}
       <VersionDisplay />
     </div>
   );
