@@ -3,6 +3,7 @@
 'use client';
 
 import { Clover, Film, Home, Menu, Search, Star, Tv } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -15,7 +16,6 @@ import {
 } from 'react';
 
 import { useSite } from './SiteProvider';
-
 interface SidebarContextType {
   isCollapsed: boolean;
 }
@@ -34,9 +34,17 @@ const Logo = () => {
       href='/'
       className='flex items-center justify-center h-16 select-none hover:opacity-80 transition-opacity duration-200'
     >
-      <span className='text-5xl font-bold text-green-600 tracking-tight'>
+      {/* <span className='text-4xl font-bold text-green-600 tracking-tight'>
         {siteName}
-      </span>
+      </span> */}
+      <Image
+        src='logo_brand.png'
+        alt='logo'
+        width={32}
+        height={32}
+        layout='responsive'
+        className='ml-2'
+      />
     </Link>
   );
 };
@@ -183,10 +191,10 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
               <button
                 title='Toggle Sidebar'
                 onClick={handleToggle}
-                className={` w-8 h-8  absolute top-1/2 -translate-y-1/2 flex items-center justify-centerrounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100/50 transition-colors duration-200 z-10 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50 ${isCollapsed ? 'left-1/2 -translate-x-1/2' : 'right-2'
+                className={` w-7 h-8  absolute top-1/2 -translate-y-1/2 flex items-center justify-centerrounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100/50 transition-colors duration-200 z-10 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50 ${isCollapsed ? 'left-1/2 -translate-x-1/2' : 'right-2'
                   }`}
               >
-                <Menu className='h-8 w-8' />
+                <Menu className='h-7 w-8' />
               </button>
             </div>
 
