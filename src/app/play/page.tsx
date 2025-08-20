@@ -938,8 +938,8 @@ function PlayPageClient() {
     )
       return;
 
-    // Alt + 左箭头 = 上一集
-    if (e.altKey && e.key === 'ArrowLeft') {
+    // Ctrl + 左箭头 = 上一集
+    if (e.ctrlKey && e.key === 'ArrowLeft') {
       if (detailRef.current && currentEpisodeIndexRef.current > 0) {
         handlePreviousEpisode();
       } else {
@@ -955,8 +955,8 @@ function PlayPageClient() {
       e.preventDefault();
     }
 
-    // Alt + 右箭头 = 下一集
-    if (e.altKey && e.key === 'ArrowRight') {
+    // Ctrl + 右箭头 = 下一集
+    if (e.ctrlKey && e.key === 'ArrowRight') {
       const d = detailRef.current;
       const idx = currentEpisodeIndexRef.current;
       if (d && idx < d.episodes.length - 1) {
